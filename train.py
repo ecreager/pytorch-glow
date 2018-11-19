@@ -6,6 +6,7 @@ from torch.optim import lr_scheduler
 from torchvision import datasets, transforms, utils
 
 import numpy as np
+import os
 import pdb
 import argparse
 import time
@@ -17,6 +18,7 @@ from utils import *
 parser = argparse.ArgumentParser()
 # training
 parser.add_argument('--batch_size', type=int, default=64)
+parser.add_argument('--hidden_channels', type=int, default=128)
 parser.add_argument('--depth', type=int, default=10) 
 parser.add_argument('--n_levels', type=int, default=3) 
 parser.add_argument('--norm', type=str, default='actnorm')
@@ -34,8 +36,12 @@ parser.add_argument('--save_every', type=int, default=5, help='save model every 
 parser.add_argument('--data_dir', type=str, default='../pixelcnn-pp')
 parser.add_argument('--save_dir', type=str, default='exps', help='directory for log / saving')
 parser.add_argument('--load_dir', type=str, default=None, help='directory from which to load existing model')
+parser.add_argument('--sample_dir', type=str, default=None, help='save samples here')
 args = parser.parse_args()
 args.n_bins = 2 ** args.n_bits_x
+
+if not os.path.exists(args.sample_dir):
+    os.makedirs(args.sample_dir)
 
 # reproducibility is good
 np.random.seed(0)
@@ -120,7 +126,7 @@ for epoch in range(start_epoch, args.n_epochs):
             avg_train_bits_x = 0.
             sample = model.module.sample()
             grid = utils.make_grid(sample)
-            utils.save_image(grid, '../glow/samples/cifar_Test_{}_{}.png'.format(epoch, i // args.print_every))
+            utils.save_image(grid, '{}/cifar_Test_{}_{}.png'.format(args.sample_dir, epoch, i // args.print_every))
 
         print('iteration took {:.4f}'.format(time.time() - t))
         
@@ -150,7 +156,7 @@ for epoch in range(start_epoch, args.n_epochs):
 
         sample = model.module.sample()
         grid = utils.make_grid(sample)
-        utils.save_image(grid, '../glow/samples/cifar_Test_{}.png'.format(epoch))
+        utils.save_image(grid, '{}/cifar_Test_{}.png'.format(args.sample_dir, epoch))
     
     if (epoch + 1) % args.save_every == 0: 
         save_session(model, optim, args, epoch)

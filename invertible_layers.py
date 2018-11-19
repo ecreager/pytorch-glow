@@ -230,10 +230,10 @@ class GaussianPrior(Layer):
 
 # Additive Coupling Layer
 class AdditiveCoupling(Layer):
-    def __init__(self, num_features):
+    def __init__(self, num_features, hidden_channels):
         super(AdditiveCoupling, self).__init__()
         assert num_features % 2 == 0
-        self.NN = NN(num_features // 2)
+        self.NN = NN(num_features // 2, hidden_channels)
 
     def forward_(self, x, objective):
         z1, z2 = torch.chunk(x, 2, dim=1)
@@ -247,10 +247,11 @@ class AdditiveCoupling(Layer):
 
 # Additive Coupling Layer
 class AffineCoupling(Layer):
-    def __init__(self, num_features):
+    def __init__(self, num_features, hidden_channels):
         super(AffineCoupling, self).__init__()
         # assert num_features % 2 == 0
-        self.NN = NN(num_features // 2, channels_out=num_features)
+        self.NN = NN(num_features // 2, hidden_channels,
+                channels_out=num_features)
 
     def forward_(self, x, objective):
         z1, z2 = torch.chunk(x, 2, dim=1)
@@ -352,9 +353,9 @@ class RevNetStep(LayerList):
             raise ValueError
 
         if args.coupling == 'additive': 
-            layers += [AdditiveCoupling(num_channels)]
+            layers += [AdditiveCoupling(num_channels, args.hidden_channels)]
         elif args.coupling == 'affine':
-            layers += [AffineCoupling(num_channels)]
+            layers += [AffineCoupling(num_channels, args.hidden_channels)]
         else: 
             raise ValueError
 
