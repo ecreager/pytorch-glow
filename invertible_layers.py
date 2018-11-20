@@ -7,8 +7,8 @@ from torch.nn.modules.batchnorm import _BatchNorm
 import numpy as np
 import pdb
 
-from layers import * 
-from utils import * 
+from .layers import * 
+from .utils import * 
 
 # ------------------------------------------------------------------------------
 # Abstract Classes to define common interface for invertible functions

@@ -28,7 +28,7 @@ Convolution Interlaced with Actnorm
 '''
 class Conv2dActNorm(nn.Module):
     def __init__(self, channels_in, channels_out, filter_size, stride=1, padding=None):
-        from invertible_layers import ActNorm
+        from .invertible_layers import ActNorm
         super(Conv2dActNorm, self).__init__()
         padding = (filter_size - 1) // 2 or padding
         self.conv = nn.Conv2d(channels_in, channels_out, filter_size, padding=padding, bias=False)
