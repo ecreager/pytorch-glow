@@ -10,6 +10,9 @@ import pdb
 from .layers import * 
 from .utils import * 
 
+# hard coded stuff
+ACTIVE_DIM_LOG_VAR = 3
+
 # ------------------------------------------------------------------------------
 # Abstract Classes to define common interface for invertible functions
 # ------------------------------------------------------------------------------
@@ -163,14 +166,18 @@ class Squeeze(Layer):
 
 # Split Layer for multi-scale architecture. Factor of 2 hardcoded.
 class Split(Layer):
-    def __init__(self, input_shape):
+    def __init__(self, input_shape, args):
         super(Split, self).__init__()
         bs, c, h, w = input_shape
         self.conv_zero = Conv2dZeroInit(c // 2, c, 3, padding=(3 - 1) // 2)
+        self.n_active_dims = args.n_active_dims
 
     def split2d_prior(self, x):
         h = self.conv_zero(x)
         mean, logs = h[:, 0::2], h[:, 1::2]
+        if self.n_active_dims:
+            high_var_dims = logs[:, :self.n_active_dims, 0, 0]
+            high_var_dims.fill_(ACTIVE_DIM_LOG_VAR / 2.)
         return gaussian_diag(mean, logs)
 
     def forward_(self, x, objective):
@@ -196,6 +203,7 @@ class GaussianPrior(Layer):
             self.conv = Conv2dZeroInit(2 * input_shape[1], 2 * input_shape[1], 3, padding=(3 - 1) // 2)
         else: 
             self.conv = None
+        self.n_active_dims = args.n_active_dims
 
     def forward_(self, x, objective):
         mean_and_logsd = torch.cat([torch.zeros_like(x) for _ in range(2)], dim=1)
@@ -204,7 +212,9 @@ class GaussianPrior(Layer):
             mean_and_logsd = self.conv(mean_and_logsd)
 
         mean, logsd = torch.chunk(mean_and_logsd, 2, dim=1)
-
+        if self.n_active_dims:
+            high_var_dims = logsd[:, :self.n_active_dims, 0, 0]
+            high_var_dims.fill_(ACTIVE_DIM_LOG_VAR / 2.)
         pz = gaussian_diag(mean, logsd)
         objective += pz.logp(x) 
 
@@ -219,6 +229,9 @@ class GaussianPrior(Layer):
             mean_and_logsd = self.conv(mean_and_logsd)
 
         mean, logsd = torch.chunk(mean_and_logsd, 2, dim=1)
+        if self.n_active_dims:
+            high_var_dims = logsd[:, :self.n_active_dims, 0, 0]
+            high_var_dims.fill_(ACTIVE_DIM_LOG_VAR / 2.)
         pz = gaussian_diag(mean, logsd)
 
         return pz.sample(), objective
@@ -382,7 +395,7 @@ class Glow_(LayerList, nn.Module):
 
             if i < args.n_levels - 1: 
                 # Split Layer
-                layers += [Split(output_shapes[-1])]
+                layers += [Split(output_shapes[-1], args)]
                 C = C // 2
                 output_shapes += [(-1, C, H, W)]
 
